@@ -424,9 +424,36 @@
             xajax_form_detalle(id, empresa, sucursal, tipo);
         }
 
-        function actualizarCumplimientoDetalle(checkbox, detalleId, codpedi, empresa, sucursal, tableId, estadoId) {
-            var estado = checkbox && checkbox.checked ? 'S' : 'N';
-            xajax_actualizar_cumplimiento_detalle(detalleId, codpedi, empresa, sucursal, estado);
+        function actualizarCumplimientoCantidad(input, detalleId, codpedi, empresa, sucursal, tableId, estadoId) {
+            var cantidad = parseFloat(input.value);
+            var solicitada = parseFloat(input.dataset.solicitada || 0);
+
+            if (Number.isNaN(cantidad)) {
+                cantidad = 0;
+            }
+
+            if (cantidad < 0 || cantidad > solicitada) {
+                alertSwal('La cantidad no puede ser mayor a la solicitada ni negativa');
+                input.value = '';
+                actualizarEstadoCumplimiento(tableId, estadoId);
+                return;
+            }
+
+            var fila = input.closest('tr');
+            var detalleInput = fila ? fila.querySelector('.cumplimiento-detalle') : null;
+            var detalleTexto = detalleInput ? detalleInput.value : '';
+            xajax_actualizar_cumplimiento_detalle_cantidad(detalleId, codpedi, empresa, sucursal, cantidad, detalleTexto);
+            actualizarEstadoCumplimiento(tableId, estadoId);
+        }
+
+        function actualizarCumplimientoDetalleTexto(input, detalleId, codpedi, empresa, sucursal, tableId, estadoId) {
+            var fila = input.closest('tr');
+            var cantidadInput = fila ? fila.querySelector('.cumplimiento-cantidad') : null;
+            var cantidad = cantidadInput ? parseFloat(cantidadInput.value) : 0;
+            if (Number.isNaN(cantidad)) {
+                cantidad = 0;
+            }
+            xajax_actualizar_cumplimiento_detalle_cantidad(detalleId, codpedi, empresa, sucursal, cantidad, input.value);
             actualizarEstadoCumplimiento(tableId, estadoId);
         }
 
@@ -449,8 +476,8 @@
             var boton = document.getElementById(cumplimientoBotonId);
 
             if (tabla) {
-                var checks = tabla.querySelectorAll('input.cumplimiento-checkbox');
-                checks.forEach(function (item) {
+                var inputs = tabla.querySelectorAll('input.cumplimiento-cantidad, input.cumplimiento-detalle');
+                inputs.forEach(function (item) {
                     item.disabled = true;
                 });
             }
@@ -467,18 +494,26 @@
                 return;
             }
 
-            var checks = tabla.querySelectorAll('input.cumplimiento-checkbox');
-            var total = checks.length;
+            var inputs = tabla.querySelectorAll('input.cumplimiento-cantidad');
+            var total = inputs.length;
             var completados = 0;
-            checks.forEach(function (item) {
-                if (item.checked) {
+            var parciales = 0;
+            inputs.forEach(function (item) {
+                var solicitada = parseFloat(item.dataset.solicitada || 0);
+                var cantidad = parseFloat(item.value);
+                if (Number.isNaN(cantidad) || cantidad <= 0) {
+                    return;
+                }
+                if (Math.abs(cantidad - solicitada) < 0.00001) {
                     completados++;
+                } else if (cantidad < solicitada) {
+                    parciales++;
                 }
             });
 
             var estadoTexto = 'PARCIALMENTE COMPLETADO';
             var estadoClase = 'label-warning';
-            if (total === 0 || completados === 0) {
+            if (total === 0 || (completados === 0 && parciales === 0)) {
                 estadoTexto = 'INCOMPLETO';
                 estadoClase = 'label-danger';
             } else if (completados === total) {
