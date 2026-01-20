@@ -430,6 +430,36 @@
             actualizarEstadoCumplimiento(tableId, estadoId);
         }
 
+        var cumplimientoTableId = '';
+        var cumplimientoEstadoId = '';
+        var cumplimientoBotonId = '';
+
+        function prepararBloqueoCumplimiento(tableId, estadoId, botonId, bloqueado) {
+            cumplimientoTableId = tableId;
+            cumplimientoEstadoId = estadoId;
+            cumplimientoBotonId = botonId;
+
+            if (bloqueado === 'S') {
+                bloquearCumplimientoUI();
+            }
+        }
+
+        function bloquearCumplimientoUI() {
+            var tabla = document.getElementById(cumplimientoTableId);
+            var boton = document.getElementById(cumplimientoBotonId);
+
+            if (tabla) {
+                var checks = tabla.querySelectorAll('input.cumplimiento-checkbox');
+                checks.forEach(function (item) {
+                    item.disabled = true;
+                });
+            }
+
+            if (boton) {
+                boton.disabled = true;
+            }
+        }
+
         function actualizarEstadoCumplimiento(tableId, estadoId) {
             var tabla = document.getElementById(tableId);
             var etiqueta = document.getElementById(estadoId);
@@ -459,6 +489,10 @@
             etiqueta.textContent = 'Estado: ' + estadoTexto;
             etiqueta.classList.remove('label-danger', 'label-warning', 'label-success');
             etiqueta.classList.add(estadoClase);
+        }
+
+        function guardarCumplimientoPedido(codpedi, empresa, sucursal) {
+            xajax_guardar_cumplimiento_pedido(codpedi, empresa, sucursal);
         }
 
         function adjuntos_solicitud(id, empresa, sucursal, tipo) {

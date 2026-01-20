@@ -124,6 +124,15 @@ function form_adjuntos_pedi( $codpedi, $idempresa, $idsucursal){
 
     $oReturn = new xajaxResponse();
 
+    $sqlEstadoPedido = "SELECT pedi_cumpl_bloq, pedi_est_cumpl from saepedi where pedi_cod_pedi='$codpedi' "
+        . "and pedi_cod_empr=$idempresa and pedi_cod_sucu=$idsucursal";
+    $estadoGuardado = '';
+    $cumplimientoBloqueado = 'N';
+    if ($oIfxA->Query($sqlEstadoPedido) && $oIfxA->NumFilas() > 0) {
+        $estadoGuardado = trim((string) $oIfxA->f('pedi_est_cumpl'));
+        $cumplimientoBloqueado = trim((string) $oIfxA->f('pedi_cumpl_bloq')) ?: 'N';
+    }
+
 
         //TABLA ADJUNTOS CARGADOS ADJUNTOS
     $sHtmladj = '<table id="tbadjoc" class="table table-striped table-bordered table-hover table-condensed" style="width: 100%; margin-bottom: 0px;" align="center">';
@@ -6286,8 +6295,9 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $sHtml .= '<td align="center">' . $codigoAuxiliar . '</td>';
                 $sHtml .= '<td align="center">' . $descripcionAuxiliar . '</td>';
                 $checked = $cumplido === 'S' ? 'checked' : '';
+                $disabledCheckbox = $cumplimientoBloqueado === 'S' ? 'disabled' : '';
                 $sHtml .= '<td align="center"><input type="checkbox" class="cumplimiento-checkbox" ' . $checked . ' '
-                    . 'onchange="actualizarCumplimientoDetalle(this, \'' . $ped_cod . '\', \'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
+                    . $disabledCheckbox . ' onchange="actualizarCumplimientoDetalle(this, \'' . $ped_cod . '\', \'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
                 $sHtml .= '<td align="center">' . $archivoHtml . '</td>';
                 $sHtml .= '</tr>';
                 $k++;
@@ -6310,7 +6320,20 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
         $estadoClase = 'label-success';
     }
 
+    if ($cumplimientoBloqueado === 'S' && $estadoGuardado !== '') {
+        $estadoCumplimiento = strtoupper($estadoGuardado);
+        if ($estadoCumplimiento === 'COMPLETADO') {
+            $estadoClase = 'label-success';
+        } elseif ($estadoCumplimiento === 'INCOMPLETO') {
+            $estadoClase = 'label-danger';
+        } else {
+            $estadoClase = 'label-warning';
+        }
+    }
+
+    $tableId = $tipo == 1 ? 'tbdetalle' : 'tbdetalleord';
     $estadoId = $tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd';
+    $botonGuardarId = $tipo == 1 ? 'guardarCumplimientoBtn' : 'guardarCumplimientoBtnOrd';
     $modal  = '
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -6323,8 +6346,13 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                         <div class="modal-body">
                         <div class="table-responsive">';
     $modal .= $sHtml;
+    $disabledGuardar = $cumplimientoBloqueado === 'S' ? 'disabled' : '';
     $modal .= '   </div>       </div>
                         <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="' . $botonGuardarId . '" ' . $disabledGuardar . '
+                            onclick="guardarCumplimientoPedido(\'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\')">
+                            Guardar cumplimiento
+                        </button>
                         <button type="button" class="btn btn-danger" data-dismiss="modal">Cerrar</button>
                         </div>
                     </div>
@@ -6339,6 +6367,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     }
 
 
+    $oReturn->script("prepararBloqueoCumplimiento('$tableId', '$estadoId', '$botonGuardarId', '$cumplimientoBloqueado');");
     return $oReturn;
 }
 
@@ -6371,6 +6400,57 @@ function actualizar_cumplimiento_detalle($detalleId, $codpedi, $empresa, $sucurs
         $oIfx->Query($sql);
     } catch (Exception $e) {
         $oReturn->alert('No se pudo actualizar el cumplimiento del producto.');
+    }
+
+    return $oReturn;
+}
+
+function guardar_cumplimiento_pedido($codpedi, $empresa, $sucursal)
+{
+    global $DSN_Ifx;
+    session_start();
+
+    $oIfx = new Dbo();
+    $oIfx->DSN = $DSN_Ifx;
+    $oIfx->Conectar();
+
+    $oReturn = new xajaxResponse();
+
+    $codpedi = trim((string) $codpedi);
+    $empresa = (int) $empresa;
+    $sucursal = (int) $sucursal;
+
+    if ($codpedi === '' || $empresa === 0 || $sucursal === 0) {
+        $oReturn->alert('No se recibió el pedido para guardar el cumplimiento.');
+        return $oReturn;
+    }
+
+    $sqlTotales = "SELECT COUNT(*) AS total, "
+        . "SUM(CASE WHEN dped_cumplido='S' THEN 1 ELSE 0 END) AS cumplidos "
+        . "FROM saedped WHERE dped_cod_pedi='$codpedi' AND dped_cod_empr=$empresa AND dped_cod_sucu=$sucursal";
+    $total = 0;
+    $cumplidos = 0;
+    if ($oIfx->Query($sqlTotales) && $oIfx->NumFilas() > 0) {
+        $total = (int) $oIfx->f('total');
+        $cumplidos = (int) $oIfx->f('cumplidos');
+    }
+
+    $estadoCumplimiento = 'PARCIALMENTE COMPLETADO';
+    if ($total === 0) {
+        $estadoCumplimiento = 'INCOMPLETO';
+    } elseif ($cumplidos === $total) {
+        $estadoCumplimiento = 'COMPLETADO';
+    }
+
+    $sql = "UPDATE saepedi SET pedi_est_cumpl='$estadoCumplimiento', pedi_cumpl_bloq='S' "
+        . "WHERE pedi_cod_pedi='$codpedi' AND pedi_cod_empr=$empresa AND pedi_cod_sucu=$sucursal";
+
+    try {
+        $oIfx->Query($sql);
+        $oReturn->script("alertSwal('Cumplimiento guardado. Ya no se podrá editar este pedido.', 'info');");
+        $oReturn->script("bloquearCumplimientoUI();");
+    } catch (Exception $e) {
+        $oReturn->alert('No se pudo guardar el cumplimiento del pedido.');
     }
 
     return $oReturn;
