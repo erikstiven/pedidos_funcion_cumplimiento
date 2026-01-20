@@ -80,6 +80,9 @@ ALTER TABLE saedped
     ADD COLUMN IF NOT EXISTS dped_cod_auxiliar VARCHAR(50),
     ADD COLUMN IF NOT EXISTS dped_desc_auxiliar VARCHAR(255);
 
+ALTER TABLE saedped
+    ADD COLUMN IF NOT EXISTS dped_cumplido CHAR(1) DEFAULT 'N';
+
 
 
 

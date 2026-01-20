@@ -6213,12 +6213,15 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                     <th>Tipo</th>
                     <th>C&oacute;digo Auxiliar</th>
                     <th>Descripci&oacute;n Auxiliar</th>
+                    <th>Cumplido</th>
                     <th>Archivo</th>
                 </tr>
                 </thead><tbody>';
 
 
     $k = 1;
+    $totalDetalles = 0;
+    $totalCumplidos = 0;
     $sqlpedi = "SELECT * from saedped where dped_cod_pedi='$codpedi' 
     and dped_cod_empr= $idempresa and dped_cod_sucu=$idsucursal";
 
@@ -6229,6 +6232,11 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $codigoAuxiliar = trim($oIfx->f('dped_cod_auxiliar'));
                 $descripcionAuxiliar = trim($oIfx->f('dped_desc_auxiliar'));
                 $esAuxiliar = (!empty($codigoAuxiliar) || !empty($descripcionAuxiliar));
+                $cumplido = trim((string) $oIfx->f('dped_cumplido'));
+                $totalDetalles++;
+                if ($cumplido === 'S') {
+                    $totalCumplidos++;
+                }
 
                 //bodega
                 $cbode = $oIfx->f('dped_cod_bode');
@@ -6277,6 +6285,9 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $sHtml .= '<td align="center">' . $tipoProducto . '</td>';
                 $sHtml .= '<td align="center">' . $codigoAuxiliar . '</td>';
                 $sHtml .= '<td align="center">' . $descripcionAuxiliar . '</td>';
+                $checked = $cumplido === 'S' ? 'checked' : '';
+                $sHtml .= '<td align="center"><input type="checkbox" class="cumplimiento-checkbox" ' . $checked . ' '
+                    . 'onchange="actualizarCumplimientoDetalle(this, \'' . $ped_cod . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
                 $sHtml .= '<td align="center">' . $archivoHtml . '</td>';
                 $sHtml .= '</tr>';
                 $k++;
@@ -6289,12 +6300,22 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
 
     $sHtml .= '</table>';
 
+    $estadoCumplimiento = 'PARCIALMENTE COMPLETADO';
+    if ($totalDetalles === 0) {
+        $estadoCumplimiento = 'SIN PRODUCTOS';
+    } elseif ($totalCumplidos === $totalDetalles) {
+        $estadoCumplimiento = 'COMPLETADO';
+    }
+
+    $estadoId = $tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd';
     $modal  = '
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal">&times;</button>
-                            <h4 class="modal-title">DETALLE - SOLICITUD DE COMPRA: ' . $codpedi . ' </h4>
+                            <h4 class="modal-title">DETALLE - SOLICITUD DE COMPRA: ' . $codpedi . '
+                                <span class="label label-info" id="' . $estadoId . '" style="margin-left: 10px;">Estado: ' . $estadoCumplimiento . '</span>
+                            </h4>
                         </div>
                         <div class="modal-body">
                         <div class="table-responsive">';
@@ -6314,6 +6335,36 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
         $oReturn->script("init('tbdetalleord')");
     }
 
+
+    return $oReturn;
+}
+
+function actualizar_cumplimiento_detalle($detalleId, $estado)
+{
+    global $DSN_Ifx;
+    session_start();
+
+    $oIfx = new Dbo();
+    $oIfx->DSN = $DSN_Ifx;
+    $oIfx->Conectar();
+
+    $oReturn = new xajaxResponse();
+
+    $detalleId = trim((string) $detalleId);
+    $estadoNormalizado = $estado === 'S' ? 'S' : 'N';
+
+    if ($detalleId === '') {
+        $oReturn->alert('No se recibió el detalle del pedido.');
+        return $oReturn;
+    }
+
+    $sql = "UPDATE saedped SET dped_cumplido='$estadoNormalizado' WHERE dped_cod_dped='$detalleId'";
+
+    try {
+        $oIfx->Query($sql);
+    } catch (Exception $e) {
+        $oReturn->alert('No se pudo actualizar el cumplimiento del producto.');
+    }
 
     return $oReturn;
 }

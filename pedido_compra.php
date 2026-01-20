@@ -424,6 +424,38 @@
             xajax_form_detalle(id, empresa, sucursal, tipo);
         }
 
+        function actualizarCumplimientoDetalle(checkbox, detalleId, tableId, estadoId) {
+            var estado = checkbox && checkbox.checked ? 'S' : 'N';
+            xajax_actualizar_cumplimiento_detalle(detalleId, estado);
+            actualizarEstadoCumplimiento(tableId, estadoId);
+        }
+
+        function actualizarEstadoCumplimiento(tableId, estadoId) {
+            var tabla = document.getElementById(tableId);
+            var etiqueta = document.getElementById(estadoId);
+            if (!tabla || !etiqueta) {
+                return;
+            }
+
+            var checks = tabla.querySelectorAll('input.cumplimiento-checkbox');
+            var total = checks.length;
+            var completados = 0;
+            checks.forEach(function (item) {
+                if (item.checked) {
+                    completados++;
+                }
+            });
+
+            var estadoTexto = 'PARCIALMENTE COMPLETADO';
+            if (total === 0) {
+                estadoTexto = 'SIN PRODUCTOS';
+            } else if (completados === total) {
+                estadoTexto = 'COMPLETADO';
+            }
+
+            etiqueta.textContent = 'Estado: ' + estadoTexto;
+        }
+
         function adjuntos_solicitud(id, empresa, sucursal, tipo) {
             if (tipo == 1) {
                 $("#ModalAdj").modal("show");
