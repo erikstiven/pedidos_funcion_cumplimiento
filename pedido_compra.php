@@ -447,13 +447,18 @@
             });
 
             var estadoTexto = 'PARCIALMENTE COMPLETADO';
+            var estadoClase = 'label-warning';
             if (total === 0) {
-                estadoTexto = 'SIN PRODUCTOS';
+                estadoTexto = 'INCOMPLETO';
+                estadoClase = 'label-danger';
             } else if (completados === total) {
                 estadoTexto = 'COMPLETADO';
+                estadoClase = 'label-success';
             }
 
             etiqueta.textContent = 'Estado: ' + estadoTexto;
+            etiqueta.classList.remove('label-danger', 'label-warning', 'label-success');
+            etiqueta.classList.add(estadoClase);
         }
 
         function adjuntos_solicitud(id, empresa, sucursal, tipo) {

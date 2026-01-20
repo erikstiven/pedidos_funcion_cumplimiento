@@ -6301,10 +6301,13 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     $sHtml .= '</table>';
 
     $estadoCumplimiento = 'PARCIALMENTE COMPLETADO';
+    $estadoClase = 'label-warning';
     if ($totalDetalles === 0) {
-        $estadoCumplimiento = 'SIN PRODUCTOS';
+        $estadoCumplimiento = 'INCOMPLETO';
+        $estadoClase = 'label-danger';
     } elseif ($totalCumplidos === $totalDetalles) {
         $estadoCumplimiento = 'COMPLETADO';
+        $estadoClase = 'label-success';
     }
 
     $estadoId = $tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd';
@@ -6314,7 +6317,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal">&times;</button>
                             <h4 class="modal-title">DETALLE - SOLICITUD DE COMPRA: ' . $codpedi . '
-                                <span class="label label-info" id="' . $estadoId . '" style="margin-left: 10px;">Estado: ' . $estadoCumplimiento . '</span>
+                                <span class="label ' . $estadoClase . '" id="' . $estadoId . '" style="margin-left: 10px;">Estado: ' . $estadoCumplimiento . '</span>
                             </h4>
                         </div>
                         <div class="modal-body">
