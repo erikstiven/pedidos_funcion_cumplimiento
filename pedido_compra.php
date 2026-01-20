@@ -631,6 +631,7 @@
                 scrollX: true,
                 scrollCollapse: true,
                 paging: false,
+                autoWidth: false,
 
                 dom: 'Bfrtip',
                 buttons: [{
@@ -667,7 +668,11 @@
 
                 ordering: true,
                 info: true,
+                initComplete: function() {
+                    this.api().columns.adjust();
+                }
             });
+            table.columns.adjust();
         }
 
 
