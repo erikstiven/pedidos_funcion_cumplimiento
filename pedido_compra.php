@@ -478,7 +478,7 @@
 
             var estadoTexto = 'PARCIALMENTE COMPLETADO';
             var estadoClase = 'label-warning';
-            if (total === 0) {
+            if (total === 0 || completados === 0) {
                 estadoTexto = 'INCOMPLETO';
                 estadoClase = 'label-danger';
             } else if (completados === total) {

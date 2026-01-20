@@ -6312,7 +6312,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
 
     $estadoCumplimiento = 'PARCIALMENTE COMPLETADO';
     $estadoClase = 'label-warning';
-    if ($totalDetalles === 0) {
+    if ($totalDetalles === 0 || $totalCumplidos === 0) {
         $estadoCumplimiento = 'INCOMPLETO';
         $estadoClase = 'label-danger';
     } elseif ($totalCumplidos === $totalDetalles) {
@@ -6436,7 +6436,7 @@ function guardar_cumplimiento_pedido($codpedi, $empresa, $sucursal)
     }
 
     $estadoCumplimiento = 'PARCIALMENTE COMPLETADO';
-    if ($total === 0) {
+    if ($total === 0 || $cumplidos === 0) {
         $estadoCumplimiento = 'INCOMPLETO';
     } elseif ($cumplidos === $total) {
         $estadoCumplimiento = 'COMPLETADO';
