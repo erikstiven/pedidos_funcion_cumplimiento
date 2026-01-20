@@ -113,41 +113,9 @@
             padding: 4px 6px;
         }
 
-        #tbdetalle th.col-cumplida,
-        #tbdetalle td.col-cumplida,
-        #tbdetalleord th.col-cumplida,
-        #tbdetalleord td.col-cumplida {
-            width: 120px;
-        }
-
-        #tbdetalle th.col-detalle-cumpl,
-        #tbdetalle td.col-detalle-cumpl,
-        #tbdetalleord th.col-detalle-cumpl,
-        #tbdetalleord td.col-detalle-cumpl {
-            width: 180px;
-        }
-
-        #tbdetalle .cumplimiento-cantidad,
-        #tbdetalleord .cumplimiento-cantidad {
-            width: 100%;
-            min-width: 0;
-            box-sizing: border-box;
-            display: block;
-        }
-
-        #tbdetalle .cumplimiento-detalle,
-        #tbdetalleord .cumplimiento-detalle {
-            width: 100%;
-            min-width: 0;
-            box-sizing: border-box;
-            display: block;
-        }
-
-        #tbdetalle td.col-cumplida,
-        #tbdetalle td.col-detalle-cumpl,
-        #tbdetalleord td.col-cumplida,
-        #tbdetalleord td.col-detalle-cumpl {
-            padding: 2px 4px;
+        #tbdetalle .col-cumpl-resumen,
+        #tbdetalleord .col-cumpl-resumen {
+            font-size: 12px;
         }
 
         @media (max-width: 768px) {
@@ -479,66 +447,93 @@
             xajax_form_detalle(id, empresa, sucursal, tipo);
         }
 
-        function actualizarCumplimientoCantidad(input, detalleId, codpedi, empresa, sucursal, tableId, estadoId) {
-            var cantidad = parseFloat(input.value);
-            var solicitada = parseFloat(input.dataset.solicitada || 0);
-
-            if (Number.isNaN(cantidad)) {
-                cantidad = 0;
-            }
-
-            if (cantidad < 0 || cantidad > solicitada) {
-                alertSwal('La cantidad no puede ser mayor a la solicitada ni negativa');
-                input.value = '';
-                actualizarEstadoCumplimiento(tableId, estadoId);
-                return;
-            }
-
-            var fila = input.closest('tr');
-            var detalleInput = fila ? fila.querySelector('.cumplimiento-detalle') : null;
-            var detalleTexto = detalleInput ? detalleInput.value : '';
-            xajax_actualizar_cumplimiento_detalle_cantidad(detalleId, codpedi, empresa, sucursal, cantidad, detalleTexto);
-            actualizarEstadoCumplimiento(tableId, estadoId);
-        }
-
-        function actualizarCumplimientoDetalleTexto(input, detalleId, codpedi, empresa, sucursal, tableId, estadoId) {
-            var fila = input.closest('tr');
-            var cantidadInput = fila ? fila.querySelector('.cumplimiento-cantidad') : null;
-            var cantidad = cantidadInput ? parseFloat(cantidadInput.value) : 0;
-            if (Number.isNaN(cantidad)) {
-                cantidad = 0;
-            }
-            xajax_actualizar_cumplimiento_detalle_cantidad(detalleId, codpedi, empresa, sucursal, cantidad, input.value);
-            actualizarEstadoCumplimiento(tableId, estadoId);
-        }
-
         var cumplimientoTableId = '';
         var cumplimientoEstadoId = '';
         var cumplimientoBotonId = '';
+        var cumplimientoEditorId = '';
+        var cumplimientoGuardarLineaId = '';
 
-        function prepararBloqueoCumplimiento(tableId, estadoId, botonId, bloqueado) {
+        function prepararBloqueoCumplimiento(tableId, estadoId, botonId, editorId, guardarLineaId, bloqueado) {
             cumplimientoTableId = tableId;
             cumplimientoEstadoId = estadoId;
             cumplimientoBotonId = botonId;
+            cumplimientoEditorId = editorId;
+            cumplimientoGuardarLineaId = guardarLineaId;
 
+            inicializarCumplimientoEditor(tableId, editorId);
             if (bloqueado === 'S') {
                 bloquearCumplimientoUI();
+            }
+        }
+
+        function inicializarCumplimientoEditor(tableId, editorId) {
+            var tabla = document.getElementById(tableId);
+            var editor = document.getElementById(editorId);
+            if (!tabla || !editor) {
+                return;
+            }
+
+            var cuerpo = tabla.querySelector('tbody');
+            if (!cuerpo) {
+                return;
+            }
+            if (cuerpo.dataset.cumplInit === '1') {
+                return;
+            }
+            cuerpo.dataset.cumplInit = '1';
+
+            cuerpo.addEventListener('click', function (event) {
+                var fila = event.target.closest('tr');
+                if (!fila || !fila.classList.contains('fila-cumplimiento')) {
+                    return;
+                }
+                seleccionarFilaCumplimiento(editor, fila);
+            });
+        }
+
+        function seleccionarFilaCumplimiento(editor, fila) {
+            var cantidad = fila.dataset.cumplida || '';
+            var detalle = fila.dataset.detalleCumpl || '';
+            var solicitada = fila.dataset.solicitada || '';
+
+            editor.dataset.detalleId = fila.dataset.detalle || '';
+            editor.dataset.codpedi = fila.dataset.codpedi || '';
+            editor.dataset.empresa = fila.dataset.empresa || '';
+            editor.dataset.sucursal = fila.dataset.sucursal || '';
+            editor.dataset.solicitada = solicitada;
+            editor.dataset.rowId = fila.dataset.detalle || '';
+
+            var inputCantidad = editor.querySelector('.cumplimiento-cantidad-input');
+            var inputDetalle = editor.querySelector('.cumplimiento-detalle-input');
+            if (inputCantidad) {
+                inputCantidad.value = cantidad ? cantidad : '';
+            }
+            if (inputDetalle) {
+                inputDetalle.value = detalle;
             }
         }
 
         function bloquearCumplimientoUI() {
             var tabla = document.getElementById(cumplimientoTableId);
             var boton = document.getElementById(cumplimientoBotonId);
+            var editor = document.getElementById(cumplimientoEditorId);
+            var botonLinea = document.getElementById(cumplimientoGuardarLineaId);
 
             if (tabla) {
-                var inputs = tabla.querySelectorAll('input.cumplimiento-cantidad, input.cumplimiento-detalle');
-                inputs.forEach(function (item) {
-                    item.disabled = true;
-                });
+                tabla.classList.add('cumplimiento-bloqueado');
             }
 
             if (boton) {
                 boton.disabled = true;
+            }
+            if (botonLinea) {
+                botonLinea.disabled = true;
+            }
+            if (editor) {
+                var editorInputs = editor.querySelectorAll('input');
+                editorInputs.forEach(function (item) {
+                    item.disabled = true;
+                });
             }
         }
 
@@ -549,13 +544,13 @@
                 return;
             }
 
-            var inputs = tabla.querySelectorAll('input.cumplimiento-cantidad');
-            var total = inputs.length;
+            var filas = tabla.querySelectorAll('tbody tr.fila-cumplimiento');
+            var total = filas.length;
             var completados = 0;
             var parciales = 0;
-            inputs.forEach(function (item) {
-                var solicitada = parseFloat(item.dataset.solicitada || 0);
-                var cantidad = parseFloat(item.value);
+            filas.forEach(function (fila) {
+                var solicitada = parseFloat(fila.dataset.solicitada || 0);
+                var cantidad = parseFloat(fila.dataset.cumplida || 0);
                 if (Number.isNaN(cantidad) || cantidad <= 0) {
                     return;
                 }
@@ -583,6 +578,57 @@
 
         function guardarCumplimientoPedido(codpedi, empresa, sucursal) {
             xajax_guardar_cumplimiento_pedido(codpedi, empresa, sucursal);
+        }
+
+        function guardarCumplimientoLinea(editorId, tableId, estadoId) {
+            var editor = document.getElementById(editorId);
+            if (!editor) {
+                return;
+            }
+
+            var detalleId = editor.dataset.detalleId;
+            var codpedi = editor.dataset.codpedi;
+            var empresa = editor.dataset.empresa;
+            var sucursal = editor.dataset.sucursal;
+            var solicitada = parseFloat(editor.dataset.solicitada || 0);
+
+            if (!detalleId) {
+                alertSwal('Seleccione un producto para registrar el cumplimiento.');
+                return;
+            }
+
+            var inputCantidad = editor.querySelector('.cumplimiento-cantidad-input');
+            var inputDetalle = editor.querySelector('.cumplimiento-detalle-input');
+            var cantidad = inputCantidad ? parseFloat(inputCantidad.value) : 0;
+            var detalle = inputDetalle ? inputDetalle.value : '';
+
+            if (Number.isNaN(cantidad)) {
+                cantidad = 0;
+            }
+
+            if (cantidad < 0 || cantidad > solicitada) {
+                alertSwal('La cantidad no puede ser mayor a la solicitada ni negativa');
+                return;
+            }
+
+            xajax_actualizar_cumplimiento_detalle_cantidad(detalleId, codpedi, empresa, sucursal, cantidad, detalle);
+
+            var fila = document.querySelector('tr.fila-cumplimiento[data-detalle="' + detalleId + '"]');
+            if (fila) {
+                fila.dataset.cumplida = cantidad;
+                fila.dataset.detalleCumpl = detalle;
+                var celdaResumen = fila.querySelector('.col-cumpl-resumen');
+                if (celdaResumen) {
+                    var resumen = 'Sin registro';
+                    if (cantidad > 0 || detalle) {
+                        var detalleTexto = detalle ? detalle : '-';
+                        resumen = 'Cant: ' + cantidad + ' | Det: ' + detalleTexto;
+                    }
+                    celdaResumen.textContent = resumen;
+                }
+            }
+
+            actualizarEstadoCumplimiento(tableId, estadoId);
         }
 
         function adjuntos_solicitud(id, empresa, sucursal, tipo) {

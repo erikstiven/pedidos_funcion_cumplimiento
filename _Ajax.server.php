@@ -6225,8 +6225,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                     <col style="width:120px">
                     <col style="width:120px">
                     <col style="width:180px">
-                    <col style="width:120px">
-                    <col style="width:200px">
+                    <col style="width:220px">
                     <col style="width:90px">
                 </colgroup>';
     $sHtml .= '<thead><tr>
@@ -6240,8 +6239,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                     <th>Tipo</th>
                     <th>C&oacute;digo Auxiliar</th>
                     <th>Descripci&oacute;n Auxiliar</th>
-                    <th class="col-cumplida">Cantidad Cumplida</th>
-                    <th class="col-detalle-cumpl">Detalle Cumplimiento</th>
+                    <th>Cumplimiento</th>
                     <th>Archivo</th>
                 </tr>
                 </thead><tbody>';
@@ -6307,7 +6305,9 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $nombreMostrado = $esAuxiliar && !empty($descripcionAuxiliar) ? $descripcionAuxiliar : $nprod;
                 $tipoProducto = $esAuxiliar ? 'Producto no registrado' : 'Producto registrado';
 
-                $sHtml .= '<tr>';
+                $sHtml .= '<tr class="fila-cumplimiento" data-detalle="' . $ped_cod . '" data-codpedi="' . $codpedi . '" '
+                    . 'data-empresa="' . $idempresa . '" data-sucursal="' . $idsucursal . '" data-solicitada="' . $cant . '" '
+                    . 'data-cumplida="' . $cantidadCumplida . '" data-detalle-cumpl="' . htmlspecialchars($detalleCumplimiento, ENT_QUOTES, 'UTF-8') . '">';
                 $sHtml .= '<td align="center">' . $k . '</td>';
                 $sHtml .= '<td align="center">' . $nbode . '</td>';
                 $sHtml .= '<td align="center">' . $codigoMostrado . '</td>';
@@ -6318,13 +6318,12 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $sHtml .= '<td align="center">' . $tipoProducto . '</td>';
                 $sHtml .= '<td align="center">' . $codigoAuxiliar . '</td>';
                 $sHtml .= '<td align="center">' . $descripcionAuxiliar . '</td>';
-                $disabledInputs = $cumplimientoBloqueado === 'S' ? 'disabled' : '';
-                $sHtml .= '<td align="center" class="col-cumplida"><input type="number" min="0" step="0.01" class="form-control input-sm cumplimiento-cantidad" '
-                    . 'data-solicitada="' . $cant . '" value="' . ($cantidadCumplida > 0 ? $cantidadCumplida : '') . '" '
-                    . $disabledInputs . ' onchange="actualizarCumplimientoCantidad(this, \'' . $ped_cod . '\', \'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
-                $sHtml .= '<td align="center" class="col-detalle-cumpl"><input type="text" class="form-control input-sm cumplimiento-detalle" '
-                    . 'value="' . htmlspecialchars($detalleCumplimiento, ENT_QUOTES, 'UTF-8') . '" '
-                    . $disabledInputs . ' onchange="actualizarCumplimientoDetalleTexto(this, \'' . $ped_cod . '\', \'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
+                $resumenCumplimiento = 'Sin registro';
+                if ($cantidadCumplida > 0 || $detalleCumplimiento !== '') {
+                    $detalleTexto = $detalleCumplimiento !== '' ? $detalleCumplimiento : '-';
+                    $resumenCumplimiento = 'Cant: ' . $cantidadCumplida . ' | Det: ' . htmlspecialchars($detalleTexto, ENT_QUOTES, 'UTF-8');
+                }
+                $sHtml .= '<td align="center" class="col-cumpl-resumen">' . $resumenCumplimiento . '</td>';
                 $sHtml .= '<td align="center">' . $archivoHtml . '</td>';
                 $sHtml .= '</tr>';
                 $k++;
@@ -6361,6 +6360,8 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     $tableId = $tipo == 1 ? 'tbdetalle' : 'tbdetalleord';
     $estadoId = $tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd';
     $botonGuardarId = $tipo == 1 ? 'guardarCumplimientoBtn' : 'guardarCumplimientoBtnOrd';
+    $editorId = $tipo == 1 ? 'cumplimientoEditor' : 'cumplimientoEditorOrd';
+    $guardarLineaId = $tipo == 1 ? 'guardarCumplimientoLineaBtn' : 'guardarCumplimientoLineaBtnOrd';
     $modal  = '
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -6373,6 +6374,27 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                         <div class="modal-body">
                         <div class="table-responsive">';
     $modal .= $sHtml;
+    $modal .= '<div class="panel panel-default" id="' . $editorId . '" style="margin-top: 10px;">
+                    <div class="panel-heading"><strong>Registro de cumplimiento</strong></div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <label>Cantidad cumplida</label>
+                                <input type="number" min="0" step="0.01" class="form-control cumplimiento-cantidad-input">
+                            </div>
+                            <div class="col-sm-6">
+                                <label>Detalle cumplimiento</label>
+                                <input type="text" class="form-control cumplimiento-detalle-input">
+                            </div>
+                            <div class="col-sm-3" style="margin-top: 24px;">
+                                <button type="button" class="btn btn-primary" id="' . $guardarLineaId . '" onclick="guardarCumplimientoLinea(\'' . $editorId . '\', \'' . $tableId . '\', \'' . $estadoId . '\')">
+                                    Guardar línea
+                                </button>
+                            </div>
+                        </div>
+                        <div class="help-block" style="margin-top: 8px;">Seleccione un producto en la tabla para editar su cumplimiento.</div>
+                    </div>
+                </div>';
     $disabledGuardar = $cumplimientoBloqueado === 'S' ? 'disabled' : '';
     $modal .= '   </div>       </div>
                         <div class="modal-footer">
@@ -6394,7 +6416,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     }
 
 
-    $oReturn->script("prepararBloqueoCumplimiento('$tableId', '$estadoId', '$botonGuardarId', '$cumplimientoBloqueado');");
+    $oReturn->script("prepararBloqueoCumplimiento('$tableId', '$estadoId', '$botonGuardarId', '$editorId', '$guardarLineaId', '$cumplimientoBloqueado');");
     return $oReturn;
 }
 
