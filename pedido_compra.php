@@ -110,6 +110,7 @@
             word-wrap: break-word;
             overflow: hidden;
             text-overflow: ellipsis;
+            padding: 4px 6px;
         }
 
         #tbdetalle th.col-cumplida,
@@ -131,6 +132,7 @@
             width: 100%;
             min-width: 0;
             box-sizing: border-box;
+            display: block;
         }
 
         #tbdetalle .cumplimiento-detalle,
@@ -138,6 +140,14 @@
             width: 100%;
             min-width: 0;
             box-sizing: border-box;
+            display: block;
+        }
+
+        #tbdetalle td.col-cumplida,
+        #tbdetalle td.col-detalle-cumpl,
+        #tbdetalleord td.col-cumplida,
+        #tbdetalleord td.col-detalle-cumpl {
+            padding: 2px 4px;
         }
 
         @media (max-width: 768px) {
