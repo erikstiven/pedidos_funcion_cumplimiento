@@ -53,6 +53,8 @@ $xajax->registerFunction("carga_anulado");
 $xajax->registerFunction("reporte_solicitudes");
 $xajax->registerFunction("adjuntos_solicitud");
 $xajax->registerFunction("form_detalle");
+$xajax->registerFunction("guardar_cumplimiento_linea");
+$xajax->registerFunction("guardar_cumplimiento_global");
 $xajax->registerFunction("genera_pdf_doc_reporte");
 $xajax->registerFunction("form_aprobaciones");
 $xajax->registerFunction("autorizar_solicitud");

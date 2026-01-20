@@ -6181,6 +6181,83 @@ function adjuntos_solicitud($id, $empresa, $sucursal, $tipo)
     return $oReturn;
 }
 /*MODAL DETALLE*/
+function calcular_estado_cumplimiento_linea($cantidadCumplida, $cantidadSolicitada)
+{
+    if (empty($cantidadCumplida) || $cantidadCumplida <= 0) {
+        return 'N';
+    }
+    if ($cantidadCumplida >= $cantidadSolicitada) {
+        return 'S';
+    }
+    return 'P';
+}
+
+function formato_cantidad_cumplimiento($cantidad)
+{
+    $cantidad = round($cantidad, 2);
+    $formateada = number_format($cantidad, 2, '.', '');
+    $formateada = rtrim(rtrim($formateada, '0'), '.');
+    return $formateada === '' ? '0' : $formateada;
+}
+
+function resumen_cumplimiento_linea($cantidadCumplida, $detalleCumplimiento)
+{
+    if (empty($cantidadCumplida) || $cantidadCumplida <= 0) {
+        return 'Sin registro';
+    }
+    $resumen = 'Cant: ' . formato_cantidad_cumplimiento($cantidadCumplida);
+    if (!empty($detalleCumplimiento)) {
+        $resumen .= ' | Det: ' . $detalleCumplimiento;
+    }
+    return $resumen;
+}
+
+function calcular_estado_cumplimiento_pedido($codpedi, $idempresa, $idsucursal, $oIfx)
+{
+    $total = 0;
+    $totalCompletos = 0;
+    $totalNoCumplidos = 0;
+    $sql = "SELECT dped_can_ped, dped_cant_cumpl from saedped where dped_cod_pedi='$codpedi'
+        and dped_cod_empr= $idempresa and dped_cod_sucu=$idsucursal";
+
+    if ($oIfx->Query($sql)) {
+        if ($oIfx->NumFilas() > 0) {
+            do {
+                $total++;
+                $cantidadSolicitada = round($oIfx->f('dped_can_ped'), 2);
+                $cantidadCumplida = round($oIfx->f('dped_cant_cumpl'), 2);
+                $estadoLinea = calcular_estado_cumplimiento_linea($cantidadCumplida, $cantidadSolicitada);
+                if ($estadoLinea === 'S') {
+                    $totalCompletos++;
+                }
+                if ($estadoLinea === 'N') {
+                    $totalNoCumplidos++;
+                }
+            } while ($oIfx->SiguienteRegistro());
+        }
+    }
+    $oIfx->Free();
+
+    if ($total === 0 || $totalNoCumplidos === $total) {
+        return 'INCOMPLETO';
+    }
+    if ($totalCompletos === $total) {
+        return 'COMPLETADO';
+    }
+    return 'PARCIALMENTE COMPLETADO';
+}
+
+function clase_label_cumplimiento($estado)
+{
+    if ($estado === 'COMPLETADO') {
+        return 'label-success';
+    }
+    if ($estado === 'PARCIALMENTE COMPLETADO') {
+        return 'label-warning';
+    }
+    return 'label-danger';
+}
+
 function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
 {
     global $DSN, $DSN_Ifx;
@@ -6196,6 +6273,27 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
 
     $oReturn = new xajaxResponse();
 
+    $estadoPedido = '';
+    $bloqueoCumplimiento = 'N';
+    $sqlEstado = "SELECT pedi_est_cumpl, pedi_cumpl_bloq from saepedi where pedi_cod_pedi='$codpedi'
+        and pedi_cod_empr= $idempresa and pedi_cod_sucu=$idsucursal";
+
+    if ($oIfxA->Query($sqlEstado)) {
+        if ($oIfxA->NumFilas() > 0) {
+            $estadoPedido = trim($oIfxA->f('pedi_est_cumpl'));
+            $bloqueoCumplimiento = trim($oIfxA->f('pedi_cumpl_bloq'));
+        }
+    }
+    $oIfxA->Free();
+
+    if (empty($estadoPedido)) {
+        $estadoPedido = calcular_estado_cumplimiento_pedido($codpedi, $idempresa, $idsucursal, $oIfx);
+    }
+    if (empty($bloqueoCumplimiento)) {
+        $bloqueoCumplimiento = 'N';
+    }
+    $claseEstado = clase_label_cumplimiento($estadoPedido);
+    $panelId = 'cumplimientoPanelTipo' . $tipo;
 
     if ($tipo == 1) {
         $sHtml .= '<table id="tbdetalle" class="table table-striped table-bordered table-hover table-condensed" style="width: 100%; margin-bottom: 0px;" align="center">';
@@ -6210,6 +6308,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                     <th>Unidad</th>
                     <th >Detalle</th>
                     <th >Cantidad Solicitada</th>
+                    <th>Cumplimiento</th>
                     <th>Tipo</th>
                     <th>C&oacute;digo Auxiliar</th>
                     <th>Descripci&oacute;n Auxiliar</th>
@@ -6256,6 +6355,8 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
 
                 //cantidad y costos
                 $cant = round($oIfx->f('dped_can_ped'), 2);
+                $cantCumplida = round($oIfx->f('dped_cant_cumpl'), 2);
+                $detalleCumplimiento = trim($oIfx->f('dped_det_cumpl'));
                 $archivoAdjunto = trim($oIfx->f('dped_adj_dped'));
                 $archivoHtml = '';
                 if (!empty($archivoAdjunto)) {
@@ -6265,8 +6366,11 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $codigoMostrado = $esAuxiliar && !empty($codigoAuxiliar) ? $codigoAuxiliar : $citem;
                 $nombreMostrado = $esAuxiliar && !empty($descripcionAuxiliar) ? $descripcionAuxiliar : $nprod;
                 $tipoProducto = $esAuxiliar ? 'Producto no registrado' : 'Producto registrado';
+                $resumenCumplimiento = resumen_cumplimiento_linea($cantCumplida, $detalleCumplimiento);
+                $resumenCumplimientoHtml = htmlspecialchars($resumenCumplimiento, ENT_QUOTES, 'UTF-8');
+                $detalleCumplimientoAttr = htmlspecialchars($detalleCumplimiento, ENT_QUOTES, 'UTF-8');
 
-                $sHtml .= '<tr>';
+                $sHtml .= '<tr class="cumplimiento-row" data-dped="' . $ped_cod . '" data-cant="' . $cant . '" data-cumplcant="' . $cantCumplida . '" data-cumpldet="' . $detalleCumplimientoAttr . '">';
                 $sHtml .= '<td align="center">' . $k . '</td>';
                 $sHtml .= '<td align="center">' . $nbode . '</td>';
                 $sHtml .= '<td align="center">' . $codigoMostrado . '</td>';
@@ -6274,6 +6378,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $sHtml .= '<td align="center">' . $unidad . '</td>';
                 $sHtml .= '<td align="justify">' . $det . '</td>';
                 $sHtml .= '<td align="center">' . $cant . '</td>';
+                $sHtml .= '<td align="center" class="cumplimiento-resumen">' . $resumenCumplimientoHtml . '</td>';
                 $sHtml .= '<td align="center">' . $tipoProducto . '</td>';
                 $sHtml .= '<td align="center">' . $codigoAuxiliar . '</td>';
                 $sHtml .= '<td align="center">' . $descripcionAuxiliar . '</td>';
@@ -6297,10 +6402,38 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                             <h4 class="modal-title">DETALLE - SOLICITUD DE COMPRA: ' . $codpedi . ' </h4>
                         </div>
                         <div class="modal-body">
+                        <div id="' . $panelId . '" class="cumplimiento-panel" data-codpedi="' . $codpedi . '" data-empresa="' . $idempresa . '" data-sucursal="' . $idsucursal . '" data-tipo="' . $tipo . '" data-bloqueado="' . $bloqueoCumplimiento . '">
+                            <div style="margin-bottom: 10px;">
+                                <span class="label ' . $claseEstado . ' cumplimiento-estado-label">' . $estadoPedido . '</span>
+                            </div>
                         <div class="table-responsive">';
     $modal .= $sHtml;
-    $modal .= '   </div>       </div>
+    $modal .= '   </div>
+                        <div class="panel panel-default" style="margin-top: 10px;">
+                            <div class="panel-heading"><strong>Cumplimiento por producto</strong></div>
+                            <div class="panel-body">
+                                <p class="text-muted cumplimiento-guia">Seleccione un producto en la tabla para editar su cumplimiento</p>
+                                <div class="row">
+                                    <div class="col-sm-4">
+                                        <label>Cantidad Cumplida</label>
+                                        <input type="number" class="form-control cumplimiento-cantidad" min="0" step="0.01">
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <label>Detalle Cumplimiento</label>
+                                        <input type="text" class="form-control cumplimiento-detalle">
+                                    </div>
+                                </div>
+                                <div class="row" style="margin-top: 10px;">
+                                    <div class="col-sm-12">
+                                        <button type="button" class="btn btn-primary btn-guardar-linea">Guardar línea</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                        </div>
                         <div class="modal-footer">
+                        <button type="button" class="btn btn-success btn-guardar-cumplimiento" data-panel="' . $panelId . '">Guardar cumplimiento</button>
                         <button type="button" class="btn btn-danger" data-dismiss="modal">Cerrar</button>
                         </div>
                     </div>
@@ -6309,11 +6442,107 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     if ($tipo == 1) {
         $oReturn->assign("ModalDetalle", "innerHTML", $modal);
         $oReturn->script("init('tbdetalle')");
+        $oReturn->script("initCumplimientoDetalle({tableId: 'tbdetalle', panelId: '" . $panelId . "', bloqueado: '" . $bloqueoCumplimiento . "', tipo: " . $tipo . "});");
     } else {
         $oReturn->assign("ModalDetalleOrd", "innerHTML", $modal);
         $oReturn->script("init('tbdetalleord')");
+        $oReturn->script("initCumplimientoDetalle({tableId: 'tbdetalleord', panelId: '" . $panelId . "', bloqueado: '" . $bloqueoCumplimiento . "', tipo: " . $tipo . "});");
     }
 
+
+    return $oReturn;
+}
+
+function guardar_cumplimiento_linea($dpedId, $codpedi, $idempresa, $idsucursal, $cantidadCumplida, $detalleCumplimiento, $tipo)
+{
+    global $DSN_Ifx;
+    session_start();
+
+    $oIfx = new Dbo();
+    $oIfx->DSN = $DSN_Ifx;
+    $oIfx->Conectar();
+
+    $oReturn = new xajaxResponse();
+
+    if (empty($dpedId)) {
+        $oReturn->script("alertSwal('Seleccione un producto en la tabla antes de guardar.', 'warning');");
+        return $oReturn;
+    }
+
+    $sqlBloqueo = "SELECT pedi_cumpl_bloq from saepedi where pedi_cod_pedi='$codpedi'
+        and pedi_cod_empr= $idempresa and pedi_cod_sucu=$idsucursal";
+    $bloqueado = consulta_string_func($sqlBloqueo, 'pedi_cumpl_bloq', $oIfx, 'N');
+
+    if ($bloqueado === 'S') {
+        $oReturn->script("alertSwal('El cumplimiento ya está bloqueado y no se puede editar.', 'warning');");
+        return $oReturn;
+    }
+
+    $sqlLinea = "SELECT dped_can_ped from saedped where dped_cod_dped=$dpedId and dped_cod_pedi='$codpedi'
+        and dped_cod_empr= $idempresa and dped_cod_sucu=$idsucursal";
+    $cantidadSolicitada = consulta_string_func($sqlLinea, 'dped_can_ped', $oIfx, '');
+
+    if ($cantidadSolicitada === '') {
+        $oReturn->script("alertSwal('No se encontró la línea seleccionada.', 'warning');");
+        return $oReturn;
+    }
+
+    $cantidadSolicitada = round($cantidadSolicitada, 2);
+    $cantidadCumplida = round(floatval($cantidadCumplida), 2);
+
+    if ($cantidadCumplida < 0) {
+        $oReturn->script("alertSwal('La cantidad no puede ser negativa.', 'warning');");
+        return $oReturn;
+    }
+
+    if ($cantidadCumplida > $cantidadSolicitada) {
+        $oReturn->script("alertSwal('La cantidad no puede ser mayor a la solicitada.', 'warning');");
+        return $oReturn;
+    }
+
+    $detalleCumplimiento = trim($detalleCumplimiento);
+    $detalleDb = addslashes($detalleCumplimiento);
+    $estadoLinea = calcular_estado_cumplimiento_linea($cantidadCumplida, $cantidadSolicitada);
+
+    $sqlUpdate = "update saedped set dped_cant_cumpl=$cantidadCumplida, dped_det_cumpl='$detalleDb', dped_cumplido='$estadoLinea'
+        where dped_cod_dped=$dpedId and dped_cod_pedi='$codpedi' and dped_cod_empr= $idempresa and dped_cod_sucu=$idsucursal";
+    $oIfx->Query($sqlUpdate);
+
+    $estadoPedido = calcular_estado_cumplimiento_pedido($codpedi, $idempresa, $idsucursal, $oIfx);
+    $resumen = resumen_cumplimiento_linea($cantidadCumplida, $detalleCumplimiento);
+    $resumenJs = json_encode($resumen);
+    $detalleJs = json_encode($detalleCumplimiento);
+
+    $oReturn->script("actualizarCumplimientoLinea({
+        dpedId: {$dpedId},
+        resumen: {$resumenJs},
+        cantidad: '{$cantidadCumplida}',
+        detalle: {$detalleJs},
+        estadoPedido: '{$estadoPedido}',
+        tipo: {$tipo}
+    });");
+
+    return $oReturn;
+}
+
+function guardar_cumplimiento_global($codpedi, $idempresa, $idsucursal, $tipo)
+{
+    global $DSN_Ifx;
+    session_start();
+
+    $oIfx = new Dbo();
+    $oIfx->DSN = $DSN_Ifx;
+    $oIfx->Conectar();
+
+    $oReturn = new xajaxResponse();
+
+    $estadoPedido = calcular_estado_cumplimiento_pedido($codpedi, $idempresa, $idsucursal, $oIfx);
+    $sqlUpdate = "update saepedi set pedi_est_cumpl='$estadoPedido', pedi_cumpl_bloq='S'
+        where pedi_cod_pedi='$codpedi' and pedi_cod_empr= $idempresa and pedi_cod_sucu=$idsucursal";
+    $oIfx->Query($sqlUpdate);
+
+    $oReturn->script("actualizarEstadoCumplimiento('cumplimientoPanelTipo{$tipo}', '{$estadoPedido}');");
+    $oReturn->script("aplicarBloqueoCumplimiento({$tipo});");
 
     return $oReturn;
 }

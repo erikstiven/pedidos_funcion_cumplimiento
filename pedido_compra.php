@@ -564,6 +564,152 @@
             });
         }
 
+        function configurarBloqueoPanelCumplimiento($panel, bloqueado) {
+            $panel.find('.cumplimiento-cantidad, .cumplimiento-detalle, .btn-guardar-linea').prop('disabled', bloqueado);
+            $panel.data('cumplimiento-bloqueado', bloqueado);
+        }
+
+        function actualizarEstadoCumplimiento(panelId, estado) {
+            var $panel = $('#' + panelId);
+            var $label = $panel.find('.cumplimiento-estado-label');
+            if ($label.length === 0) {
+                return;
+            }
+            var clase = 'label-danger';
+            if (estado === 'COMPLETADO') {
+                clase = 'label-success';
+            } else if (estado === 'PARCIALMENTE COMPLETADO') {
+                clase = 'label-warning';
+            }
+            $label.removeClass('label-success label-warning label-danger').addClass(clase).text(estado);
+        }
+
+        function initCumplimientoDetalle(config) {
+            var panel = document.getElementById(config.panelId);
+            if (!panel) {
+                return;
+            }
+            var $panel = $(panel);
+            $panel.data('cumplimiento-config', config);
+            $panel.data('cumplimiento-selected-id', null);
+            $panel.data('cumplimiento-selected-cant', 0);
+
+            var bloqueado = config.bloqueado === 'S' || config.bloqueado === true;
+            configurarBloqueoPanelCumplimiento($panel, bloqueado);
+
+            var tableSelector = '#' + config.tableId + ' tbody';
+            $(tableSelector).off('click', 'tr.cumplimiento-row');
+            $(tableSelector).on('click', 'tr.cumplimiento-row', function() {
+                if ($panel.data('cumplimiento-bloqueado')) {
+                    return;
+                }
+                $(tableSelector + ' tr').removeClass('info');
+                $(this).addClass('info');
+
+                var cantidadCumplida = parseFloat($(this).attr('data-cumplcant'));
+                var detalle = $(this).attr('data-cumpldet') || '';
+
+                if (isNaN(cantidadCumplida) || cantidadCumplida <= 0) {
+                    $panel.find('.cumplimiento-cantidad').val('');
+                } else {
+                    $panel.find('.cumplimiento-cantidad').val(cantidadCumplida);
+                }
+                $panel.find('.cumplimiento-detalle').val(detalle);
+                $panel.data('cumplimiento-selected-id', $(this).attr('data-dped'));
+                $panel.data('cumplimiento-selected-cant', parseFloat($(this).attr('data-cant')) || 0);
+            });
+
+            $panel.find('.btn-guardar-linea').off('click').on('click', function() {
+                guardarCumplimientoLinea(config.panelId);
+            });
+
+            var $btnGuardarCumpl = $('.btn-guardar-cumplimiento[data-panel="' + config.panelId + '"]');
+            $btnGuardarCumpl.off('click').on('click', function() {
+                guardarCumplimientoGlobal(config.panelId);
+            });
+            $btnGuardarCumpl.prop('disabled', bloqueado);
+        }
+
+        function guardarCumplimientoLinea(panelId) {
+            var $panel = $('#' + panelId);
+            var config = $panel.data('cumplimiento-config') || {};
+            var seleccionado = $panel.data('cumplimiento-selected-id');
+
+            if ($panel.data('cumplimiento-bloqueado')) {
+                alertSwal('El cumplimiento está bloqueado.', 'warning');
+                return;
+            }
+
+            if (!seleccionado) {
+                alertSwal('Seleccione un producto en la tabla para editar su cumplimiento', 'warning');
+                return;
+            }
+
+            var cantidad = parseFloat($panel.find('.cumplimiento-cantidad').val());
+            if (isNaN(cantidad)) {
+                cantidad = 0;
+            }
+            var cantidadSolicitada = parseFloat($panel.data('cumplimiento-selected-cant')) || 0;
+
+            if (cantidad < 0) {
+                alertSwal('La cantidad no puede ser negativa.', 'warning');
+                return;
+            }
+            if (cantidad > cantidadSolicitada) {
+                alertSwal('La cantidad no puede ser mayor a la solicitada.', 'warning');
+                return;
+            }
+
+            var detalle = $panel.find('.cumplimiento-detalle').val() || '';
+            xajax_guardar_cumplimiento_linea(
+                seleccionado,
+                $panel.data('codpedi'),
+                $panel.data('empresa'),
+                $panel.data('sucursal'),
+                cantidad,
+                detalle,
+                config.tipo
+            );
+        }
+
+        function guardarCumplimientoGlobal(panelId) {
+            var $panel = $('#' + panelId);
+            var config = $panel.data('cumplimiento-config') || {};
+
+            if ($panel.data('cumplimiento-bloqueado')) {
+                alertSwal('El cumplimiento ya está bloqueado.', 'warning');
+                return;
+            }
+
+            xajax_guardar_cumplimiento_global(
+                $panel.data('codpedi'),
+                $panel.data('empresa'),
+                $panel.data('sucursal'),
+                config.tipo
+            );
+        }
+
+        function actualizarCumplimientoLinea(data) {
+            var tipo = parseInt(data.tipo, 10);
+            var tableId = tipo === 1 ? 'tbdetalle' : 'tbdetalleord';
+            var $row = $('#' + tableId + ' tbody tr.cumplimiento-row[data-dped="' + data.dpedId + '"]');
+            if ($row.length) {
+                $row.find('.cumplimiento-resumen').text(data.resumen);
+                $row.attr('data-cumplcant', data.cantidad);
+                $row.attr('data-cumpldet', data.detalle);
+                $row.data('cumplcant', data.cantidad);
+                $row.data('cumpldet', data.detalle);
+            }
+            actualizarEstadoCumplimiento('cumplimientoPanelTipo' + tipo, data.estadoPedido);
+        }
+
+        function aplicarBloqueoCumplimiento(tipo) {
+            var panelId = 'cumplimientoPanelTipo' + parseInt(tipo, 10);
+            var $panel = $('#' + panelId);
+            configurarBloqueoPanelCumplimiento($panel, true);
+            $('.btn-guardar-cumplimiento[data-panel="' + panelId + '"]').prop('disabled', true);
+        }
+
 
 
         function normalizarValorCelda(valor) {
