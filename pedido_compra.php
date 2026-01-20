@@ -95,13 +95,6 @@
             resize: vertical;
         }
 
-        #tbdetalle,
-        #tbdetalleord {
-            table-layout: fixed;
-            width: 100%;
-            min-width: 1480px;
-        }
-
         #tbdetalle th,
         #tbdetalle td,
         #tbdetalleord th,
