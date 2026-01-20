@@ -101,37 +101,46 @@
             width: 100%;
         }
 
+        .dataTables_scrollHeadInner,
+        .dataTables_scrollHeadInner table,
+        .dataTables_scrollBody table {
+            width: 100% !important;
+        }
+
         #tbdetalle th,
         #tbdetalle td,
         #tbdetalleord th,
         #tbdetalleord td {
             vertical-align: middle;
             word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #tbdetalle th.col-cumplida,
         #tbdetalle td.col-cumplida,
         #tbdetalleord th.col-cumplida,
         #tbdetalleord td.col-cumplida {
-            width: 110px;
+            width: 120px;
         }
 
         #tbdetalle th.col-detalle-cumpl,
         #tbdetalle td.col-detalle-cumpl,
         #tbdetalleord th.col-detalle-cumpl,
         #tbdetalleord td.col-detalle-cumpl {
-            width: 160px;
+            width: 180px;
         }
 
         #tbdetalle .cumplimiento-cantidad,
         #tbdetalleord .cumplimiento-cantidad {
-            max-width: 90px;
-            margin: 0 auto;
+            width: 100%;
+            min-width: 0;
         }
 
         #tbdetalle .cumplimiento-detalle,
         #tbdetalleord .cumplimiento-detalle {
-            max-width: 150px;
+            width: 100%;
+            min-width: 0;
         }
 
         @media (max-width: 768px) {
