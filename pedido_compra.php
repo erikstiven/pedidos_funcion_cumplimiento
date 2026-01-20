@@ -424,9 +424,9 @@
             xajax_form_detalle(id, empresa, sucursal, tipo);
         }
 
-        function actualizarCumplimientoDetalle(checkbox, detalleId, tableId, estadoId) {
+        function actualizarCumplimientoDetalle(checkbox, detalleId, codpedi, empresa, sucursal, tableId, estadoId) {
             var estado = checkbox && checkbox.checked ? 'S' : 'N';
-            xajax_actualizar_cumplimiento_detalle(detalleId, estado);
+            xajax_actualizar_cumplimiento_detalle(detalleId, codpedi, empresa, sucursal, estado);
             actualizarEstadoCumplimiento(tableId, estadoId);
         }
 

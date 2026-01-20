@@ -6287,7 +6287,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $sHtml .= '<td align="center">' . $descripcionAuxiliar . '</td>';
                 $checked = $cumplido === 'S' ? 'checked' : '';
                 $sHtml .= '<td align="center"><input type="checkbox" class="cumplimiento-checkbox" ' . $checked . ' '
-                    . 'onchange="actualizarCumplimientoDetalle(this, \'' . $ped_cod . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
+                    . 'onchange="actualizarCumplimientoDetalle(this, \'' . $ped_cod . '\', \'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
                 $sHtml .= '<td align="center">' . $archivoHtml . '</td>';
                 $sHtml .= '</tr>';
                 $k++;
@@ -6339,7 +6339,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     return $oReturn;
 }
 
-function actualizar_cumplimiento_detalle($detalleId, $estado)
+function actualizar_cumplimiento_detalle($detalleId, $codpedi, $empresa, $sucursal, $estado)
 {
     global $DSN_Ifx;
     session_start();
@@ -6352,13 +6352,17 @@ function actualizar_cumplimiento_detalle($detalleId, $estado)
 
     $detalleId = trim((string) $detalleId);
     $estadoNormalizado = $estado === 'S' ? 'S' : 'N';
+    $codpedi = trim((string) $codpedi);
+    $empresa = (int) $empresa;
+    $sucursal = (int) $sucursal;
 
-    if ($detalleId === '') {
+    if ($detalleId === '' || $codpedi === '' || $empresa === 0 || $sucursal === 0) {
         $oReturn->alert('No se recibió el detalle del pedido.');
         return $oReturn;
     }
 
-    $sql = "UPDATE saedped SET dped_cumplido='$estadoNormalizado' WHERE dped_cod_dped='$detalleId'";
+    $sql = "UPDATE saedped SET dped_cumplido='$estadoNormalizado' WHERE dped_cod_dped='$detalleId' "
+        . "AND dped_cod_pedi='$codpedi' AND dped_cod_empr=$empresa AND dped_cod_sucu=$sucursal";
 
     try {
         $oIfx->Query($sql);
