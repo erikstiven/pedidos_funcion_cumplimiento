@@ -124,16 +124,6 @@ function form_adjuntos_pedi( $codpedi, $idempresa, $idsucursal){
 
     $oReturn = new xajaxResponse();
 
-    $sqlEstadoPedido = "SELECT pedi_cumpl_bloq, pedi_est_cumpl from saepedi where pedi_cod_pedi='$codpedi' "
-        . "and pedi_cod_empr=$idempresa and pedi_cod_sucu=$idsucursal";
-    $estadoGuardado = '';
-    $cumplimientoBloqueado = 'N';
-    if ($oIfxA->Query($sqlEstadoPedido) && $oIfxA->NumFilas() > 0) {
-        $estadoGuardado = trim((string) $oIfxA->f('pedi_est_cumpl'));
-        $cumplimientoBloqueado = trim((string) $oIfxA->f('pedi_cumpl_bloq')) ?: 'N';
-    }
-
-
         //TABLA ADJUNTOS CARGADOS ADJUNTOS
     $sHtmladj = '<table id="tbadjoc" class="table table-striped table-bordered table-hover table-condensed" style="width: 100%; margin-bottom: 0px;" align="center">';
 
@@ -6203,7 +6193,20 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     $oIfxA->DSN = $DSN_Ifx;
     $oIfxA->Conectar();
 
+    $oCon = new Dbo();
+    $oCon->DSN = $DSN;
+    $oCon->Conectar();
+
     $oReturn = new xajaxResponse();
+
+    $sqlEstadoPedido = "SELECT pedi_cumpl_bloq, pedi_est_cumpl from saepedi where pedi_cod_pedi='$codpedi' "
+        . "and pedi_cod_empr=$idempresa and pedi_cod_sucu=$idsucursal";
+    $estadoGuardado = '';
+    $cumplimientoBloqueado = 'N';
+    if ($oCon->Query($sqlEstadoPedido) && $oCon->NumFilas() > 0) {
+        $estadoGuardado = trim((string) $oCon->f('pedi_est_cumpl'));
+        $cumplimientoBloqueado = trim((string) $oCon->f('pedi_cumpl_bloq')) ?: 'N';
+    }
 
 
     if ($tipo == 1) {
@@ -6407,12 +6410,16 @@ function actualizar_cumplimiento_detalle($detalleId, $codpedi, $empresa, $sucurs
 
 function guardar_cumplimiento_pedido($codpedi, $empresa, $sucursal)
 {
-    global $DSN_Ifx;
+    global $DSN, $DSN_Ifx;
     session_start();
 
     $oIfx = new Dbo();
     $oIfx->DSN = $DSN_Ifx;
     $oIfx->Conectar();
+
+    $oCon = new Dbo();
+    $oCon->DSN = $DSN;
+    $oCon->Conectar();
 
     $oReturn = new xajaxResponse();
 
@@ -6446,7 +6453,7 @@ function guardar_cumplimiento_pedido($codpedi, $empresa, $sucursal)
         . "WHERE pedi_cod_pedi='$codpedi' AND pedi_cod_empr=$empresa AND pedi_cod_sucu=$sucursal";
 
     try {
-        $oIfx->Query($sql);
+        $oCon->Query($sql);
         $oReturn->script("alertSwal('Cumplimiento guardado. Ya no se podrá editar este pedido.', 'info');");
         $oReturn->script("bloquearCumplimientoUI();");
     } catch (Exception $e) {
