@@ -101,12 +101,6 @@
             width: 100%;
         }
 
-        .dataTables_scrollHeadInner,
-        .dataTables_scrollHeadInner table,
-        .dataTables_scrollBody table {
-            width: 100% !important;
-        }
-
         #tbdetalle th,
         #tbdetalle td,
         #tbdetalleord th,
@@ -674,7 +668,7 @@
         function init(table) {
             $('#' + table).DataTable().destroy();
 
-            var table = $('#' + table).DataTable({
+            var dataTable = $('#' + table).DataTable({
                 scrollY: '80vh',
                 scrollX: true,
                 scrollCollapse: true,
@@ -720,7 +714,7 @@
                     this.api().columns.adjust();
                 }
             });
-            table.columns.adjust();
+            dataTable.columns.adjust();
         }
 
 
