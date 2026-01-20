@@ -54,7 +54,6 @@ $xajax->registerFunction("reporte_solicitudes");
 $xajax->registerFunction("adjuntos_solicitud");
 $xajax->registerFunction("form_detalle");
 $xajax->registerFunction("actualizar_cumplimiento_detalle");
-$xajax->registerFunction("actualizar_cumplimiento_detalle_cantidad");
 $xajax->registerFunction("guardar_cumplimiento_pedido");
 $xajax->registerFunction("genera_pdf_doc_reporte");
 $xajax->registerFunction("form_aprobaciones");

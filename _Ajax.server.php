@@ -6225,7 +6225,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                     <col style="width:120px">
                     <col style="width:120px">
                     <col style="width:180px">
-                    <col style="width:220px">
+                    <col style="width:110px">
                     <col style="width:90px">
                 </colgroup>';
     $sHtml .= '<thead><tr>
@@ -6239,7 +6239,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                     <th>Tipo</th>
                     <th>C&oacute;digo Auxiliar</th>
                     <th>Descripci&oacute;n Auxiliar</th>
-                    <th>Cumplimiento</th>
+                    <th>Cumplido</th>
                     <th>Archivo</th>
                 </tr>
                 </thead><tbody>';
@@ -6248,7 +6248,6 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     $k = 1;
     $totalDetalles = 0;
     $totalCumplidos = 0;
-    $totalParciales = 0;
     $sqlpedi = "SELECT * from saedped where dped_cod_pedi='$codpedi' 
     and dped_cod_empr= $idempresa and dped_cod_sucu=$idsucursal";
 
@@ -6260,13 +6259,9 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $descripcionAuxiliar = trim($oIfx->f('dped_desc_auxiliar'));
                 $esAuxiliar = (!empty($codigoAuxiliar) || !empty($descripcionAuxiliar));
                 $cumplido = trim((string) $oIfx->f('dped_cumplido'));
-                $cantidadCumplida = (float) $oIfx->f('dped_cant_cumpl');
-                $detalleCumplimiento = trim((string) $oIfx->f('dped_det_cumpl'));
                 $totalDetalles++;
                 if ($cumplido === 'S') {
                     $totalCumplidos++;
-                } elseif ($cumplido === 'P') {
-                    $totalParciales++;
                 }
 
                 //bodega
@@ -6305,9 +6300,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $nombreMostrado = $esAuxiliar && !empty($descripcionAuxiliar) ? $descripcionAuxiliar : $nprod;
                 $tipoProducto = $esAuxiliar ? 'Producto no registrado' : 'Producto registrado';
 
-                $sHtml .= '<tr class="fila-cumplimiento" data-detalle="' . $ped_cod . '" data-codpedi="' . $codpedi . '" '
-                    . 'data-empresa="' . $idempresa . '" data-sucursal="' . $idsucursal . '" data-solicitada="' . $cant . '" '
-                    . 'data-cumplida="' . $cantidadCumplida . '" data-detalle-cumpl="' . htmlspecialchars($detalleCumplimiento, ENT_QUOTES, 'UTF-8') . '">';
+                $sHtml .= '<tr>';
                 $sHtml .= '<td align="center">' . $k . '</td>';
                 $sHtml .= '<td align="center">' . $nbode . '</td>';
                 $sHtml .= '<td align="center">' . $codigoMostrado . '</td>';
@@ -6318,12 +6311,10 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $sHtml .= '<td align="center">' . $tipoProducto . '</td>';
                 $sHtml .= '<td align="center">' . $codigoAuxiliar . '</td>';
                 $sHtml .= '<td align="center">' . $descripcionAuxiliar . '</td>';
-                $resumenCumplimiento = 'Sin registro';
-                if ($cantidadCumplida > 0 || $detalleCumplimiento !== '') {
-                    $detalleTexto = $detalleCumplimiento !== '' ? $detalleCumplimiento : '-';
-                    $resumenCumplimiento = 'Cant: ' . $cantidadCumplida . ' | Det: ' . htmlspecialchars($detalleTexto, ENT_QUOTES, 'UTF-8');
-                }
-                $sHtml .= '<td align="center" class="col-cumpl-resumen">' . $resumenCumplimiento . '</td>';
+                $checked = $cumplido === 'S' ? 'checked' : '';
+                $disabledCheckbox = $cumplimientoBloqueado === 'S' ? 'disabled' : '';
+                $sHtml .= '<td align="center"><input type="checkbox" class="cumplimiento-checkbox" ' . $checked . ' '
+                    . $disabledCheckbox . ' onchange="actualizarCumplimientoDetalle(this, \'' . $ped_cod . '\', \'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
                 $sHtml .= '<td align="center">' . $archivoHtml . '</td>';
                 $sHtml .= '</tr>';
                 $k++;
@@ -6338,7 +6329,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
 
     $estadoCumplimiento = 'PARCIALMENTE COMPLETADO';
     $estadoClase = 'label-warning';
-    if ($totalDetalles === 0 || ($totalCumplidos === 0 && $totalParciales === 0)) {
+    if ($totalDetalles === 0 || $totalCumplidos === 0) {
         $estadoCumplimiento = 'INCOMPLETO';
         $estadoClase = 'label-danger';
     } elseif ($totalCumplidos === $totalDetalles) {
@@ -6360,8 +6351,6 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     $tableId = $tipo == 1 ? 'tbdetalle' : 'tbdetalleord';
     $estadoId = $tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd';
     $botonGuardarId = $tipo == 1 ? 'guardarCumplimientoBtn' : 'guardarCumplimientoBtnOrd';
-    $editorId = $tipo == 1 ? 'cumplimientoEditor' : 'cumplimientoEditorOrd';
-    $guardarLineaId = $tipo == 1 ? 'guardarCumplimientoLineaBtn' : 'guardarCumplimientoLineaBtnOrd';
     $modal  = '
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -6374,27 +6363,6 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                         <div class="modal-body">
                         <div class="table-responsive">';
     $modal .= $sHtml;
-    $modal .= '<div class="panel panel-default" id="' . $editorId . '" style="margin-top: 10px;">
-                    <div class="panel-heading"><strong>Registro de cumplimiento</strong></div>
-                    <div class="panel-body">
-                        <div class="row">
-                            <div class="col-sm-3">
-                                <label>Cantidad cumplida</label>
-                                <input type="number" min="0" step="0.01" class="form-control cumplimiento-cantidad-input">
-                            </div>
-                            <div class="col-sm-6">
-                                <label>Detalle cumplimiento</label>
-                                <input type="text" class="form-control cumplimiento-detalle-input">
-                            </div>
-                            <div class="col-sm-3" style="margin-top: 24px;">
-                                <button type="button" class="btn btn-primary" id="' . $guardarLineaId . '" onclick="guardarCumplimientoLinea(\'' . $editorId . '\', \'' . $tableId . '\', \'' . $estadoId . '\')">
-                                    Guardar línea
-                                </button>
-                            </div>
-                        </div>
-                        <div class="help-block" style="margin-top: 8px;">Seleccione un producto en la tabla para editar su cumplimiento.</div>
-                    </div>
-                </div>';
     $disabledGuardar = $cumplimientoBloqueado === 'S' ? 'disabled' : '';
     $modal .= '   </div>       </div>
                         <div class="modal-footer">
@@ -6416,7 +6384,7 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     }
 
 
-    $oReturn->script("prepararBloqueoCumplimiento('$tableId', '$estadoId', '$botonGuardarId', '$editorId', '$guardarLineaId', '$cumplimientoBloqueado');");
+    $oReturn->script("prepararBloqueoCumplimiento('$tableId', '$estadoId', '$botonGuardarId', '$cumplimientoBloqueado');");
     return $oReturn;
 }
 
@@ -6454,63 +6422,6 @@ function actualizar_cumplimiento_detalle($detalleId, $codpedi, $empresa, $sucurs
     return $oReturn;
 }
 
-function actualizar_cumplimiento_detalle_cantidad($detalleId, $codpedi, $empresa, $sucursal, $cantidad, $detalleCumplimiento = '')
-{
-    global $DSN_Ifx;
-    session_start();
-
-    $oIfx = new Dbo();
-    $oIfx->DSN = $DSN_Ifx;
-    $oIfx->Conectar();
-
-    $oReturn = new xajaxResponse();
-
-    $detalleId = trim((string) $detalleId);
-    $codpedi = trim((string) $codpedi);
-    $empresa = (int) $empresa;
-    $sucursal = (int) $sucursal;
-    $cantidad = (float) $cantidad;
-    $detalleCumplimiento = trim((string) $detalleCumplimiento);
-
-    if ($detalleId === '' || $codpedi === '' || $empresa === 0 || $sucursal === 0) {
-        $oReturn->alert('No se recibió el detalle del pedido.');
-        return $oReturn;
-    }
-
-    $sqlCantidad = "SELECT dped_can_ped FROM saedped WHERE dped_cod_dped='$detalleId' "
-        . "AND dped_cod_pedi='$codpedi' AND dped_cod_empr=$empresa AND dped_cod_sucu=$sucursal";
-
-    $cantidadSolicitada = 0;
-    if ($oIfx->Query($sqlCantidad) && $oIfx->NumFilas() > 0) {
-        $cantidadSolicitada = (float) $oIfx->f('dped_can_ped');
-    }
-
-    if ($cantidad < 0 || $cantidad > $cantidadSolicitada) {
-        $oReturn->alert('La cantidad ingresada no puede ser mayor a la solicitada ni negativa.');
-        return $oReturn;
-    }
-
-    $estadoCumplimiento = 'N';
-    if ($cantidadSolicitada > 0 && abs($cantidad - $cantidadSolicitada) < 0.00001) {
-        $estadoCumplimiento = 'S';
-    } elseif ($cantidad > 0 && $cantidad < $cantidadSolicitada) {
-        $estadoCumplimiento = 'P';
-    }
-
-    $detalleCumplimiento = str_replace("'", "''", $detalleCumplimiento);
-    $sql = "UPDATE saedped SET dped_cant_cumpl=$cantidad, dped_det_cumpl='$detalleCumplimiento', "
-        . "dped_cumplido='$estadoCumplimiento' "
-        . "WHERE dped_cod_dped='$detalleId' AND dped_cod_pedi='$codpedi' AND dped_cod_empr=$empresa AND dped_cod_sucu=$sucursal";
-
-    try {
-        $oIfx->Query($sql);
-    } catch (Exception $e) {
-        $oReturn->alert('No se pudo actualizar el cumplimiento del producto.');
-    }
-
-    return $oReturn;
-}
-
 function guardar_cumplimiento_pedido($codpedi, $empresa, $sucursal)
 {
     global $DSN, $DSN_Ifx;
@@ -6536,20 +6447,17 @@ function guardar_cumplimiento_pedido($codpedi, $empresa, $sucursal)
     }
 
     $sqlTotales = "SELECT COUNT(*) AS total, "
-        . "SUM(CASE WHEN dped_cumplido='S' THEN 1 ELSE 0 END) AS cumplidos, "
-        . "SUM(CASE WHEN dped_cumplido='P' THEN 1 ELSE 0 END) AS parciales "
+        . "SUM(CASE WHEN dped_cumplido='S' THEN 1 ELSE 0 END) AS cumplidos "
         . "FROM saedped WHERE dped_cod_pedi='$codpedi' AND dped_cod_empr=$empresa AND dped_cod_sucu=$sucursal";
     $total = 0;
     $cumplidos = 0;
-    $parciales = 0;
     if ($oIfx->Query($sqlTotales) && $oIfx->NumFilas() > 0) {
         $total = (int) $oIfx->f('total');
         $cumplidos = (int) $oIfx->f('cumplidos');
-        $parciales = (int) $oIfx->f('parciales');
     }
 
     $estadoCumplimiento = 'PARCIALMENTE COMPLETADO';
-    if ($total === 0 || ($cumplidos === 0 && $parciales === 0)) {
+    if ($total === 0 || $cumplidos === 0) {
         $estadoCumplimiento = 'INCOMPLETO';
     } elseif ($cumplidos === $total) {
         $estadoCumplimiento = 'COMPLETADO';

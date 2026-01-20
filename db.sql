@@ -87,9 +87,7 @@ ALTER TABLE saedped
 ALTER TABLE saedped
     ADD COLUMN IF NOT EXISTS dped_cumplido CHAR(1) DEFAULT 'N';
 
-ALTER TABLE saedped
-    ADD COLUMN IF NOT EXISTS dped_cant_cumpl NUMERIC(18, 2) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS dped_det_cumpl TEXT;
+
 
 
 
