@@ -95,6 +95,45 @@
             resize: vertical;
         }
 
+        #tbdetalle,
+        #tbdetalleord {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        #tbdetalle th,
+        #tbdetalle td,
+        #tbdetalleord th,
+        #tbdetalleord td {
+            vertical-align: middle;
+            word-wrap: break-word;
+        }
+
+        #tbdetalle th.col-cumplida,
+        #tbdetalle td.col-cumplida,
+        #tbdetalleord th.col-cumplida,
+        #tbdetalleord td.col-cumplida {
+            width: 110px;
+        }
+
+        #tbdetalle th.col-detalle-cumpl,
+        #tbdetalle td.col-detalle-cumpl,
+        #tbdetalleord th.col-detalle-cumpl,
+        #tbdetalleord td.col-detalle-cumpl {
+            width: 160px;
+        }
+
+        #tbdetalle .cumplimiento-cantidad,
+        #tbdetalleord .cumplimiento-cantidad {
+            max-width: 90px;
+            margin: 0 auto;
+        }
+
+        #tbdetalle .cumplimiento-detalle,
+        #tbdetalleord .cumplimiento-detalle {
+            max-width: 150px;
+        }
+
         @media (max-width: 768px) {
             .productos-agregados-card table {
                 min-width: 600px;

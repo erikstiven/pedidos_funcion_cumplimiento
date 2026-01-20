@@ -6225,8 +6225,8 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                     <th>Tipo</th>
                     <th>C&oacute;digo Auxiliar</th>
                     <th>Descripci&oacute;n Auxiliar</th>
-                    <th>Cantidad Cumplida</th>
-                    <th>Detalle Cumplimiento</th>
+                    <th class="col-cumplida">Cantidad Cumplida</th>
+                    <th class="col-detalle-cumpl">Detalle Cumplimiento</th>
                     <th>Archivo</th>
                 </tr>
                 </thead><tbody>';
@@ -6304,10 +6304,10 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
                 $sHtml .= '<td align="center">' . $codigoAuxiliar . '</td>';
                 $sHtml .= '<td align="center">' . $descripcionAuxiliar . '</td>';
                 $disabledInputs = $cumplimientoBloqueado === 'S' ? 'disabled' : '';
-                $sHtml .= '<td align="center"><input type="number" min="0" step="0.01" class="form-control input-sm cumplimiento-cantidad" '
+                $sHtml .= '<td align="center" class="col-cumplida"><input type="number" min="0" step="0.01" class="form-control input-sm cumplimiento-cantidad" '
                     . 'data-solicitada="' . $cant . '" value="' . ($cantidadCumplida > 0 ? $cantidadCumplida : '') . '" '
                     . $disabledInputs . ' onchange="actualizarCumplimientoCantidad(this, \'' . $ped_cod . '\', \'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
-                $sHtml .= '<td align="center"><input type="text" class="form-control input-sm cumplimiento-detalle" '
+                $sHtml .= '<td align="center" class="col-detalle-cumpl"><input type="text" class="form-control input-sm cumplimiento-detalle" '
                     . 'value="' . htmlspecialchars($detalleCumplimiento, ENT_QUOTES, 'UTF-8') . '" '
                     . $disabledInputs . ' onchange="actualizarCumplimientoDetalleTexto(this, \'' . $ped_cod . '\', \'' . $codpedi . '\', \'' . $idempresa . '\', \'' . $idsucursal . '\', \'' . ($tipo == 1 ? 'tbdetalle' : 'tbdetalleord') . '\', \'' . ($tipo == 1 ? 'estadoCumplimiento' : 'estadoCumplimientoOrd') . '\')"></td>';
                 $sHtml .= '<td align="center">' . $archivoHtml . '</td>';
