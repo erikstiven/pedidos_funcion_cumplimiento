@@ -99,6 +99,7 @@
         #tbdetalleord {
             table-layout: fixed;
             width: 100%;
+            min-width: 1480px;
         }
 
         #tbdetalle th,
@@ -129,12 +130,14 @@
         #tbdetalleord .cumplimiento-cantidad {
             width: 100%;
             min-width: 0;
+            box-sizing: border-box;
         }
 
         #tbdetalle .cumplimiento-detalle,
         #tbdetalleord .cumplimiento-detalle {
             width: 100%;
             min-width: 0;
+            box-sizing: border-box;
         }
 
         @media (max-width: 768px) {

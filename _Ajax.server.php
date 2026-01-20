@@ -6214,6 +6214,21 @@ function form_detalle($codpedi, $idempresa, $idsucursal, $tipo)
     } else {
         $sHtml .= '<table id="tbdetalleord" class="table table-striped table-bordered table-hover table-condensed" style="width: 100%; margin-bottom: 0px;" align="center">';
     }
+    $sHtml .= '<colgroup>
+                    <col style="width:50px">
+                    <col style="width:90px">
+                    <col style="width:90px">
+                    <col style="width:160px">
+                    <col style="width:70px">
+                    <col style="width:170px">
+                    <col style="width:110px">
+                    <col style="width:120px">
+                    <col style="width:120px">
+                    <col style="width:180px">
+                    <col style="width:120px">
+                    <col style="width:200px">
+                    <col style="width:90px">
+                </colgroup>';
     $sHtml .= '<thead><tr>
                     <th >No.</th>
                     <th >Bodega</th>
