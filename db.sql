@@ -75,10 +75,19 @@ ALTER TABLE comercial.aprobador_pedido
 ALTER TABLE saepedi
     ADD COLUMN IF NOT EXISTS pedi_omit_aprob CHAR(1) DEFAULT 'N';
 
+ALTER TABLE saepedi
+    ADD COLUMN IF NOT EXISTS pedi_est_cumpl VARCHAR(30),
+    ADD COLUMN IF NOT EXISTS pedi_cumpl_bloq CHAR(1) DEFAULT 'N';
+
 -- Campos adicionales para manejar códigos y descripciones auxiliares en el detalle
 ALTER TABLE saedped
     ADD COLUMN IF NOT EXISTS dped_cod_auxiliar VARCHAR(50),
     ADD COLUMN IF NOT EXISTS dped_desc_auxiliar VARCHAR(255);
+
+ALTER TABLE saedped
+    ADD COLUMN IF NOT EXISTS dped_cumplido CHAR(1) DEFAULT 'N';
+
+
 
 
 

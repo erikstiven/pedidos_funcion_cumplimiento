@@ -95,6 +95,18 @@
             resize: vertical;
         }
 
+        #tbdetalle th,
+        #tbdetalle td,
+        #tbdetalleord th,
+        #tbdetalleord td {
+            vertical-align: middle;
+            word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 4px 6px;
+        }
+
+
         @media (max-width: 768px) {
             .productos-agregados-card table {
                 min-width: 600px;
@@ -424,6 +436,77 @@
             xajax_form_detalle(id, empresa, sucursal, tipo);
         }
 
+        function actualizarCumplimientoDetalle(checkbox, detalleId, codpedi, empresa, sucursal, tableId, estadoId) {
+            var estado = checkbox && checkbox.checked ? 'S' : 'N';
+            xajax_actualizar_cumplimiento_detalle(detalleId, codpedi, empresa, sucursal, estado);
+            actualizarEstadoCumplimiento(tableId, estadoId);
+        }
+
+        var cumplimientoTableId = '';
+        var cumplimientoEstadoId = '';
+        var cumplimientoBotonId = '';
+
+        function prepararBloqueoCumplimiento(tableId, estadoId, botonId, bloqueado) {
+            cumplimientoTableId = tableId;
+            cumplimientoEstadoId = estadoId;
+            cumplimientoBotonId = botonId;
+
+            if (bloqueado === 'S') {
+                bloquearCumplimientoUI();
+            }
+        }
+
+        function bloquearCumplimientoUI() {
+            var tabla = document.getElementById(cumplimientoTableId);
+            var boton = document.getElementById(cumplimientoBotonId);
+
+            if (tabla) {
+                var checks = tabla.querySelectorAll('input.cumplimiento-checkbox');
+                checks.forEach(function (item) {
+                    item.disabled = true;
+                });
+            }
+
+            if (boton) {
+                boton.disabled = true;
+            }
+        }
+
+        function actualizarEstadoCumplimiento(tableId, estadoId) {
+            var tabla = document.getElementById(tableId);
+            var etiqueta = document.getElementById(estadoId);
+            if (!tabla || !etiqueta) {
+                return;
+            }
+
+            var checks = tabla.querySelectorAll('input.cumplimiento-checkbox');
+            var total = checks.length;
+            var completados = 0;
+            checks.forEach(function (item) {
+                if (item.checked) {
+                    completados++;
+                }
+            });
+
+            var estadoTexto = 'PARCIALMENTE COMPLETADO';
+            var estadoClase = 'label-warning';
+            if (total === 0 || completados === 0) {
+                estadoTexto = 'INCOMPLETO';
+                estadoClase = 'label-danger';
+            } else if (completados === total) {
+                estadoTexto = 'COMPLETADO';
+                estadoClase = 'label-success';
+            }
+
+            etiqueta.textContent = 'Estado: ' + estadoTexto;
+            etiqueta.classList.remove('label-danger', 'label-warning', 'label-success');
+            etiqueta.classList.add(estadoClase);
+        }
+
+        function guardarCumplimientoPedido(codpedi, empresa, sucursal) {
+            xajax_guardar_cumplimiento_pedido(codpedi, empresa, sucursal);
+        }
+
         function adjuntos_solicitud(id, empresa, sucursal, tipo) {
             if (tipo == 1) {
                 $("#ModalAdj").modal("show");
@@ -520,11 +603,12 @@
         function init(table) {
             $('#' + table).DataTable().destroy();
 
-            var table = $('#' + table).DataTable({
+            var dataTable = $('#' + table).DataTable({
                 scrollY: '80vh',
                 scrollX: true,
                 scrollCollapse: true,
                 paging: false,
+                autoWidth: false,
 
                 dom: 'Bfrtip',
                 buttons: [{
@@ -561,7 +645,11 @@
 
                 ordering: true,
                 info: true,
+                initComplete: function() {
+                    this.api().columns.adjust();
+                }
             });
+            dataTable.columns.adjust();
         }
 
 
